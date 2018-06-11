@@ -1,36 +1,3 @@
-# graph = Graph(bolt=False, host="localhost", http_port=7687, user='neo4j', password='11111')
-
-##################################################################
-
-# with open('top21_30coins_2018_05_10_to_19.json') as data_file:
-#     data = json.load(data_file)
-# data = {"tweets": {}}
-# twtList = []
-# twtInfo = {'id':}
-
-### Using py2neo to create graph
-# from py2neo import Graph, Node, Relationship
-# g = Graph()
-# tx = g.begin()
-# a = Node("Tweet", name="Alice")
-# tx.create(a)
-# b = Node("Person", name="Bob")
-# ab = Relationship(a, "KNOWS", b)
-# tx.create(ab)
-# tx.commit()
-# g.exists(ab)
-
-"""WITH {json} AS document
-UNWIND document.tweets AS tweets
-UNWIND tweets.hashtags AS hashtag
-RETURN tweets.tid, tweets.created_at, hashtag"""
-
-# """
-#     //Hashtag->Hashtag
-#     MERGE (h)-[rh:together]->(h)
-#     ON CREATE SET rh.count = 1
-#     ON MATCH  SET rh.count = coalesce(rh.count, 0)+1
-#     """
 import json
 from py2neo import Graph, authenticate
 from neo4j.v1 import GraphDatabase
@@ -39,7 +6,7 @@ import logging
 import datetime
 
 ### Setup logging
-logging.basicConfig(filename='G:\\work\\TwitterAPI\\Neo2\\insert_history.log',level=logging.INFO, format='%(asctime)s.%(msecs)03d : %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+# logging.basicConfig(filename='G:\\work\\TwitterAPI\\Neo2\\insert_history.log',level=logging.INFO, format='%(asctime)s.%(msecs)03d : %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
 ## data
 data = {"tweets": [
@@ -47,10 +14,9 @@ data = {"tweets": [
         "hashtags": [
             "bitcoin",
             "ethereum",
-            "Bitcoin",
-            "ico",
-            "binance",
-            "xoxo"
+            "xoxo",
+            "test1",
+            "test2"
         ],
         "tweet": "Big shoutout to @devnullius , Bitto's number one source for Crypto gossips! :)\nJust kidding about gossips of course - Devvie is a true crypto expert, make sure to follow them!\n\n#bitcoin #ethereum #ico #binance #xoxo https://t.co/yRCaIm7LP1",
         "tid": 995453567296159744,
@@ -72,14 +38,9 @@ data = {"tweets": [
     },
     {
         "hashtags": [
-            "HappyWeekend",
-            "crypto",
-            "Telegram",
-            "LetsMakeItReal",
-            "Cryptocurrency",
-            "Blockchain",
-            "ToTheMOON",
-            "xoxo"
+            "bitcoin",
+            "xoxo",
+            "ethereum"
         ],
         "tweet": "#HappyWeekend to all the #crypto community ",
         "tid": 995453565689790466,
@@ -100,122 +61,196 @@ data = {"tweets": [
     }
 ]
 }
-
-# Connect to database
-uri = "bolt://localhost:7687"
-driver = GraphDatabase.driver(uri, auth=("neo4j", "11111"))
-
-# create nodes
+#
+# # Connect to database
+# uri = "bolt://localhost:7687"
+# driver = GraphDatabase.driver(uri, auth=("neo4j", "11111"))
+#
+# # create nodes
+# # with driver.session() as session:
+# #     tx = session.begin_transaction()
+# #     for t in data['tweets']:
+# #         for h in t['hashtags']:
+# #             # Open transaction
+# #             q0 = """ Create (h1:Hashtag{tag: $tag1})"""
+# #             ret = tx.run(q0, tag1=h)
+# #             # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
+# #     tx.commit()
+#
+#
+# ## test json import
 # with driver.session() as session:
+#     # Open transaction
+#     tx = session.begin_transaction()
+#
+#     q = """WITH {json} AS document
+#                 UNWIND document.tweets AS tweets
+#                 UNWIND tweets.hashtags AS hashtag
+#                 //Hashtag
+#                 MERGE (h:Hashtag {tag: hashtag})
+#                     ON CREATE SET
+#                         h.tag = hashtag
+#                 RETURN count(h)
+#                 """
+#     ret = tx.run(q, json=data).single().value()
+#     print(ret)
+#     # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
+#     tx.commit()
+#
+#     # Open transaction
+#     tx = session.begin_transaction()
+#
+#     q = """WITH {json} AS document
+#                     UNWIND document.tweets AS tweets
+#                     UNWIND tweets.hashtags AS hashtag
+#                     //Hashtag
+#                     MERGE (h:Hashtag {tag: hashtag})
+#                         ON CREATE SET
+#                             h.tag = hashtag
+#                     RETURN count(h)
+#                     """
+#     ret = tx.run(q, json=data).single().value()
+#     print(ret)
+#     # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
+#     tx.commit()
+#
+#
+# # add hash-hash relationship
+# with driver.session() as session:
+#     # Open transaction
 #     tx = session.begin_transaction()
 #     for t in data['tweets']:
-#         for h in t['hashtags']:
-#             # Open transaction
-#             q0 = """ Create (h1:Hashtag{tag: $tag1})"""
-#             ret = tx.run(q0, tag1=h)
-#             # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
+#         hashtag = t['hashtags']
+#         hashLen = len(hashtag)
+#         # Loop matching hashtag but not include previous eg. 3 tags -> (1,2),(1,3),(2,3) -> not include 2,1 /2,2 / 3,2
+#         for i in range(0, hashLen - 1):
+#             for j in range(i + 1, hashLen):
+#                 q = """ MATCH (h1:Hashtag{tag: $tag1}),
+#                               (h2:Hashtag{tag: $tag2})
+#                         MERGE (h1)-[r:together]-(h2)
+#                         ON CREATE SET r.count = $count
+#                         ON MATCH SET r.count = coalesce(r.count,0) + $count
+#                         RETURN count(r)"""
+#                 ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j], count=count).single().value()
 #     tx.commit()
+# print(str(ret)+" Hash-hash links added..")
+# logging.info(str(ret)+" Hash-hash links added..")
 
 
-## test json import
-with driver.session() as session:
-    # Open transaction
-    tx = session.begin_transaction()
-
-    q = """WITH {json} AS document
-                UNWIND document.tweets AS tweets
-                UNWIND tweets.hashtags AS hashtag
-                //Hashtag
-                MERGE (h:Hashtag {tag: hashtag})
-                    ON CREATE SET
-                        h.tag = hashtag
-                RETURN count(h)
-                """
-    ret = tx.run(q, json=data).single().value()
-    print(ret)
-    # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
-    tx.commit()
-
-    # Open transaction
-    tx = session.begin_transaction()
-
-    q = """WITH {json} AS document
-                    UNWIND document.tweets AS tweets
-                    UNWIND tweets.hashtags AS hashtag
-                    //Hashtag
-                    MERGE (h:Hashtag {tag: hashtag})
-                        ON CREATE SET
-                            h.tag = hashtag
-                    RETURN count(h)
-                    """
-    ret = tx.run(q, json=data).single().value()
-    print(ret)
-    # ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j])
-    tx.commit()
+class Hash2hash:
+    def __init__(self, tag1, tag2):
+        self.tag1 = tag1
+        self.tag2 = tag2
+        self.count = 1
 
 
-# add hash-hash relationship
-with driver.session() as session:
-    # Open transaction
-    tx = session.begin_transaction()
+def count_hash2hash(hashtags):
+    ret = []
+    # Distinct the hashtag list first
+    hashtags = list(set(hashtags))
+
+    # count co-occurrence hashtag
+    hashLen = len(hashtags)
+
+    # Loop matching hashtag but not include previous eg. 3 tags -> (1,2),(1,3),(2,3) -> not include 2,1 /2,2 / 3,2
+    for i in range(0, hashLen - 1):
+        for j in range(i + 1, hashLen):
+            pair = Hash2hash(hashtags[i], hashtags[j])
+            ret.append(pair)
+    return ret
+
+
+def count_hash2hash_dict(hashtags):
+    ret = {}
+    # Distinct and sort the hashtag list
+    hashtags = list(set(hashtags))
+    hashtags.sort()
+
+    # count co-occurrence hashtag
+    hashLen = len(hashtags)
+
+    # Loop matching hashtag but not include previous eg. 3 tags -> (1,2),(1,3),(2,3) -> not include 2,1 /2,2 / 3,2
+    for i in range(0, hashLen - 1):
+        for j in range(i + 1, hashLen):
+            key = hashtags[i] + "," + hashtags[j]
+            ret[key] = 1
+    return ret
+
+file_list = ["G:\\work\\TwitterAPI\\data\\used_data\\test\\top1_2018-05-26_to_2018-05-27.json",
+             "G:\\work\\TwitterAPI\\data\\used_data\\test\\top2-5_2018-05-26_to_2018-05-27.json",
+             "G:\\work\\TwitterAPI\\data\\used_data\\test\\top6-30_2018-05-26_to_2018-05-27.json"]
+tweetList = []
+for filename in file_list:
+    # Load json to dict
+    with open(filename) as f:
+        data = json.load(f)
+
+    #### V2 - collection of hash2hash with count
+    hash_collection = {}
+    start = datetime.datetime.now()
+    print(str(start) + ' - processing..')
     for t in data['tweets']:
-        hashtag = t['hashtags']
-        hashLen = len(hashtag)
-        # Loop matching hashtag but not include previous eg. 3 tags -> (1,2),(1,3),(2,3) -> not include 2,1 /2,2 / 3,2
-        for i in range(0, hashLen - 1):
-            for j in range(i + 1, hashLen):
-                q = """ MATCH (h1:Hashtag{tag: $tag1}),
-                              (h2:Hashtag{tag: $tag2})
-                        MERGE (h1)-[r:together]-(h2)
-                        ON CREATE SET r.count = 1
-                        ON MATCH SET r.count = coalesce(r.count,0) + 1
-                        RETURN count(r)"""
-                ret = tx.run(q, tag1=hashtag[i], tag2=hashtag[j]).single().value()
-    tx.commit()
-print(str(ret)+" Hash-hash links added..")
-logging.info(str(ret)+" Hash-hash links added..")
+        # get pairs of hash2hash from set of hashtags
 
-# with open("G:/work/TwitterAPI/data/top1/test.json") as f:
-#     data = json.load(f)
+        hashDict = count_hash2hash_dict(t['hashtags'])
+        # print(str(datetime.datetime.now() - start) + ' - hashtags takes')
+
+        # Update the collection
+        for key_h in hashDict:
+            found = 0
+
+            # start = datetime.datetime.now()
+            for key_hc in hash_collection:
+                # If sorted, no need to check hashtag for 2 direction
+                if key_hc == key_h:
+                    hash_collection[key_hc] += hashDict[key_h]
+                    found = 1
+                    break
+                # split key to tag
+                # tag1, tag2 = key_h.split(sep=",")
+                # col_tag1, col_tag2 = key_hc.split(sep=",")
+                #
+                # # Update if hash2hash already existed
+                # if (tag1 == col_tag1 or tag1 == col_tag2) and (tag2 == col_tag1 or tag2 == col_tag2):
+                #     hash_collection[key_hc] += hashDict[key_h]
+                #     found = 1
+                #     break
+            # # Append, if not found in collection
+            if found == 0:
+                hash_collection[key_h] = hashDict[key_h]
+
+            # print(str(datetime.datetime.now() - start) + ' - add collection takes')
+    # add to list for each set of crypto's hash
+    tweetList.append(hash_collection)
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + ' Done '+ filename + ' with '+ str(len(hash_collection))+'/'+str(datetime.datetime.now() - start) + ' pairs/times')
+
+# ##### V1 - collection of hash2hash with count
+# hash_collection = []
+# for t in data['tweets']:
+#     # get pairs of hash2hash from set of hashtags
+#     hashList = count_hash2hash(t['hashtags'])
+#     # Update the collection
+#     for h in hashList:
+#         found = 0
+#         for c in hash_collection:
+#             # Update if hash2hash already existed
+#             if  (h.tag1 == c.tag1 or h.tag1 == c.tag2) and (h.tag2 == c.tag1 or h.tag2 == c.tag2):
+#                 c.count += h.count
+#                 found = 1
+#                 break
+#         # Append, if not found in collection
+#         if found == 0:
+#             hash_collection.append(h)
+# print(len(hash_collection))
 
 #
-# q = """ MERGE (h1:Hashtag {tag: hh1})-(r:together)-(h2:Hashtag {tag: hh2})
-#           ON CREATE SET r.count = 1
-#           ON MATCH SET
-#             r.count = coalesce(r.count, 0) + 1 """;
-#
-# q_build_initial_graph = """WITH {json} AS document
-#     UNWIND document.tweets AS tweets
-#     UNWIND tweets.hashtags AS hashtag
-#     //Tweet
-#     MERGE (t:Tweet {id: tweets.tid})
-#         ON CREATE SET
-#             t.id = tweets.tid,
-#             t.text = tweets.tweet,
-#             t.created_at = tweets.created_at,
-#             t.country = tweets.country,
-#             t.link_count = tweets.link_count
-#     //Users
-#     MERGE (u:User {id: tweets.uid})
-#         ON CREATE SET
-#             u.id = tweets.uid,
-#             u.screen_name = tweets.screen_name,
-#             u.follower_count = tweets.friends_count,
-#             u.following_count = tweets.followers_count
-#     //Hashtag
-#     MERGE (h:Hashtag {tag: toLower(hashtag)})
-#         ON CREATE SET
-#             h.tag = toLower(hashtag)
-#
-#     //Tweet->Hashtag
-#     MERGE (t)-[:has]->(h)
-#
-#     //User->Tweet
-#     MERGE (u)-[:post]->(t)
-#
-#     RETURN count(t)
-#     """
-# q = q_build_initial_graph
-# a = graph.run(q, json=data).dump()
-# print(a)
-
+# import operator
+# x = hash_collection
+# sorted_x = sorted(x.items(), key=operator.itemgetter(1), reverse=True)
+# b=[]
+# k1 = "omg"
+# k2 = "omisego"
+# for i in sorted_x:
+#     # if i[0].__contains__("litecoin"): b.append(i)
+#     if i[0].startswith(k1) or i[0].startswith(k2) or i[0].endswith(k1) or i[0].endswith(k2): b.append(i)
+# b[0:20]
