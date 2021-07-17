@@ -176,9 +176,8 @@ def count_hash2hash_dict(hashtags):
             ret[key] = 1
     return ret
 
-file_list = ["G:\\work\\TwitterAPI\\data\\used_data\\test\\top1_2018-05-26_to_2018-05-27.json",
-             "G:\\work\\TwitterAPI\\data\\used_data\\test\\top2-5_2018-05-26_to_2018-05-27.json",
-             "G:\\work\\TwitterAPI\\data\\used_data\\test\\top6-30_2018-05-26_to_2018-05-27.json"]
+file_list = [
+             "G:\\work\\TwitterAPI\\data\\used_data\\test\\top1_2018-05-26_to_2018-05-27.json"]
 tweetList = []
 for filename in file_list:
     # Load json to dict
@@ -243,14 +242,92 @@ for filename in file_list:
 #             hash_collection.append(h)
 # print(len(hash_collection))
 
-#
-# import operator
-# x = hash_collection
-# sorted_x = sorted(x.items(), key=operator.itemgetter(1), reverse=True)
-# b=[]
-# k1 = "omg"
-# k2 = "omisego"
-# for i in sorted_x:
-#     # if i[0].__contains__("litecoin"): b.append(i)
-#     if i[0].startswith(k1) or i[0].startswith(k2) or i[0].endswith(k1) or i[0].endswith(k2): b.append(i)
-# b[0:20]
+
+
+# len(tweetList[1])
+import pickle
+def load_object(filename):
+    with open(filename, 'rb') as input:
+        obj = pickle.load(input)
+    return obj
+
+def save_object(obj, filename):
+    with open(filename, 'wb') as output:  # Overwrites any existing file.
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+
+# sample usage
+save_object(hash_collection, 'twt_top1.pkl')
+
+obj = load_object('twt_top6-30_2-5.pkl')
+top6_30 = obj[0]
+top2_5 = obj[1]
+top1 = load_object('twt_top6-30_2-5.pkl')
+
+len(top6_30)
+len(top2_5)
+len(top1)
+
+import operator
+import csv
+import sys
+
+x = top1
+sorted_x = sorted(x.items(), key=operator.itemgetter(1), reverse=True)
+
+coins = {
+     "bitcoin": ["bitcoin","btc"],
+    # "ethereum": ["ethereum","eth","ether"],
+    # "ripple": ["ripple","xrp"],
+    # "bitcoincash": ["bitcoincash","bch"],
+    # "eosio": ["eosio","eos"],
+    # "litecoin":  ["litecoin", "ltc"],
+    # "cardano":   ["cardano", "ada"],
+    # "stellar":   ["stellar", "xlm"],
+    # "iota":      ["iota", "miota"],
+    # "tron":      ["tron", "trx"],
+    # "neo":       ["neo"],
+    # "monero":    ["monero", "xmr"],
+    # "dash":      ["dash"],
+    # "nem":       ["nem", "xem"],
+    # "tether":    ["tether", "usdt"],
+    # "vechain":   ["vechain", "ven"],
+    # "ethereum_classic":  ["ethereumclassic", "etc"],
+    # "bytecoin":          ["bytecoin", "bcn"],
+    # "binance_coin":      ["binancecoin", "bnb"],
+    # "qtum":              ["qtum"],
+    # "zcash":             ["zcash", "zec"],
+    # "icon":              ["icx"],
+    # "omisego":           ["omisego"],
+    # "lisk":              ["lisk", "lsk"],
+    # "zilliqa":           ["zilliqa", "zil"],
+    # "bitcoingold":       ["bitcoingold", "btg"],
+    # "aeternity":         ["aeternity", "ae"],
+    # "ontology":          ["ontology", "ont"],
+    # "verge":             ["verge", "xvg"],
+    # "steem":             ["steem"]
+}
+top=20
+coins_h2h = {}
+for k, v in coins.items():
+    h2hcount_list=[]
+    for h2hcount in sorted_x:
+        countMatch = 0
+        # check if h2h contain considered crypto hashtag
+        for hash in v:
+            countMatch += h2hcount[0].startswith(hash) + h2hcount[0].endswith(hash)
+        # If h2h is in the hashtag list, add to h2hcount list
+        if countMatch > 0:
+            h2hcount_list.append(h2hcount)
+    # add h2hcount list to the coins list
+    coins_h2h[k] = h2hcount_list
+
+for c in coins_h2h:
+    outdata = coins_h2h[c][0:20]
+    # print(outdata)
+    with open(c+'.csv', 'w') as f:
+        writer = csv.writer(f , lineterminator='\n')
+        for tup in outdata:
+            print(tup)
+            a = list(tup)
+            a[0] = a[0].encode(sys.stdout.encoding, errors='replace')
+            writer.writerow(a)
